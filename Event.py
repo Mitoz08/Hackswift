@@ -72,12 +72,14 @@ class FixedEvent(Event):
                  end_time: datetime.time,
                  date: datetime.date,
                  recur_period: int,
+                 recur_cycle: int,
                  location: str,
                  description: str,
                  priority_tag: Priority = Priority.LOW):
-        Event().__init__(name, start_time, date, location, description, priority_tag)
+        super().__init__(name, start_time, date, location, description, priority_tag)
         self._end_time = end_time
         self._recur_period = recur_period
+        self._recur_cycle = recur_cycle
 
     def is_recurring(self):
         return self._recur_period > 0
@@ -95,11 +97,17 @@ class FixedEvent(Event):
     def get_recur_period(self):
         return self._recur_period
 
+    def get_recur_cycle(self):
+        return self._recur_cycle
+
     def set_end_time(self, end_time):
         self._end_time = end_time
 
     def set_recur_period(self, recurring_period):
         self._recur_period = recurring_period
+
+    def set_recur_cycle(self, recurring_cycle):
+        self._recur_cycle = recurring_cycle
 
 
 # Events that don't occur on a particular date / time, but have a duration
@@ -107,12 +115,12 @@ class FixedEvent(Event):
 class DynamicEvent(Event):
     def __init__(self,
                  name: str,
-                 duration: str,
+                 duration: datetime.time,
                  expiry_date: datetime.date,
                  location: str,
                  description: str,
                  priority_tag: Priority = Priority.LOW):
-        Event().__init__(name, start_time=None, date=None, location=location, description=description,
+        super().__init__(name, start_time=None, date=None, location=location, description=description,
                          priority_tag=priority_tag)
         self._duration = duration
         self._expiry_date = expiry_date

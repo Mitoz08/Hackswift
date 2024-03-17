@@ -6,7 +6,7 @@ import datetime
 
 pygame.init()
 
-window_height = 800
+window_height = 600
 window_width = 1000
 
 
@@ -78,7 +78,6 @@ class TextBox(object):
         else:
             text_surface = test_font.render(self.text, True, 'black')
         screen.blit(text_surface, (self.box_rect.x + 5, self.box_rect.y + 5))
-
 
 class DropBox(TextBox):
     ObjectType = 1
@@ -162,7 +161,6 @@ class TickBox(object):
         header_surface = test_font.render(self.header, True, 'black')
         screen.blit(header_surface, (self.x + 35, self.y))
 
-
 class UserInputGUI(object):
     # User GUI Window
     # GUI Size
@@ -201,6 +199,7 @@ class UserInputGUI(object):
     FixParaTB = ['Recurrent']
 
     DymParaDB = [['DurHr','DurMin']]
+
 
 
     """ End of Merging"""
@@ -384,14 +383,17 @@ class UserInputGUI(object):
                 else:
                     item.Draw()
 
-
-
-
-
-
     def UserClick(self, MousePos):
         if self.Exit_Rect.collidepoint(MousePos):
             return 1
+
+        if self.Save_Rect.collidepoint(MousePos):
+            print("Hi")
+            if self.CheckFilled():
+                return 0
+            else:
+                self.DeactiveAll()
+                return 2
 
         for item in self.DefDict.values():
             item.checkStatus(MousePos)
@@ -402,7 +404,6 @@ class UserInputGUI(object):
         if not self.Mode and self.FixDict['Recurrent'].Tick_Status:
             for item in self.RecurDict.values():
                 item.checkStatus(MousePos)
-
 
         return 0
 
@@ -433,7 +434,6 @@ class UserInputGUI(object):
 
         self.UpdateDay()
 
-
     def ScrollFunc(self,item):
         if item.status and item.ObjectType == 1:
             if item.CheckDayMon():
@@ -446,6 +446,7 @@ class UserInputGUI(object):
                 item.Cycle = 0
             if item.Cycle == -1:  # Cycle from first to last
                 item.Cycle = item.ScrollSen * item.MaxCycle - 1
+
     def UpdateDay(self):
         Year = self.DefDict.get('Year')
         Month = self.DefDict.get('Month')
@@ -484,20 +485,64 @@ class UserInputGUI(object):
             item.status = False
 
     def CheckFilled(self):
-        return
+        for item in self.DefDict.values():
+            if item.ObjectType != 2 and item.text == '':
+                return 1
 
-    def SaveEvent(self):
-        return
-        EventName = self.DefDict['Event']
-        EventLoc = self.DefDict['Location']
-        EventDesc = self.DefDict['Description']
-        _Priority = Priority(self.DefDict['Description'])
-        Date = datetime.date(self.DefDict['Year'],self.DefDict['Year'],self.DefDict['Year'])
-
+        TempDict = self.DymDict if self.Mode else self.FixDict
+        for item in TempDict.values():
+            if item.ObjectType != 2 and item.text == '':
+                return 1
 
 
+        if not self.Mode and self.FixDict['Recurrent'].Tick_Status:
+            for item in self.RecurDict.values():
+                if item.ObjectType != 2 and item.text == '':
+                    return 1
+        return 0
+
+    def CreateEvent(self):
+        if self.CheckFilled():
+            print("Please Fill Boxes")
+            return
+        EventName = self.DefDict['Event'].text
+        EventLoc = self.DefDict['Location'].text
+        EventDes = self.DefDict['Description'].text
+        _Priority = Priority(int(self.DefDict['Priority'].text))
+        Date = datetime.date(int(self.DefDict['Year'].text),int(self.DefDict['Month'].text),int(self.DefDict['Day'].text))
+
+        if self.Mode:
+            EventDur = datetime.time(int(self.DymDict['DurHr'].text),int(self.DymDict['DurMin'].text))
+
+            Event = DynamicEvent(EventName,EventDur,Date,EventLoc,EventDes,Priority)
+
+            #Event = DynamicEvent(name=EventName,
+            #                     location=EventLoc,
+            #                     description=EventDes,
+            #                     expiry_date=Date,
+            #                     duration=EventDur,
+            #                     priority_tag=Priority)
+
+        else:
+            Period = int(self.RecurDict['Period'].text)
+            Cycle = int(self.RecurDict['Cycle'].text)
+            StartTime = datetime.time(int(self.FixDict['StartHr'].text),int(self.FixDict['StartMin'].text))
+            EndTime = datetime.time(int(self.FixDict['EndHr'].text), int(self.FixDict['EndMin'].text))
 
 
+            Event = FixedEvent(EventName,StartTime,EndTime,Date,Period,Cycle,EventLoc,EventDes,Priority)
+
+            #Event = FixedEvent(name=EventName,
+            #                   location=EventLoc,
+            #                   description=EventDes,
+            #                   date=Date,
+            #                   start_time=StartTime,
+            #                   end_time=EndTime,
+            #                   recur_period=Period,
+            #                   recur_cycle=Cycle,
+            #                   priority_tag=Priority)
+
+        return Event
 
 
 
@@ -552,11 +597,16 @@ while True:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    if Test.UserClick(event.pos):
+                    Value = Test.UserClick(event.pos)
+                    if Value == 1:
+                        UserEventGUI = False
+                    elif Value == 2:
+                        Event = Test.CreateEvent()
+                        print(Event.get_name())
                         UserEventGUI = False
 
                 if event.button in [4,5]:
-                    print(event.button)
+                    #print(event.button)
                     Test.ScrollDD(event.button, event.pos)
 
             #if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
