@@ -1,6 +1,6 @@
 import pygame
 from sys import exit
-from math import *
+from math import * #floor function of ScrollSen
 
 window_height = 900
 window_width = 1600
@@ -99,11 +99,36 @@ class DropBox(TextBox):
 
 class TickBox(object):
     ObjectType = 2
+    status = False
     Tick_Status = False
 
-    def __init__(self):
-        return
+    Colours = ['white','red']
 
+    def __init__(self,x,y,header):
+        self.x = x
+        self.y = y
+        self.header = header
+        self.box_rect = pygame.Rect(self.x,self.y,30,30)
+
+    def checkStatus(self,MousePos):
+        # Check Collision
+        if self.box_rect.collidepoint(MousePos):
+            self.status = True
+            if self.Tick_Status:
+                self.Tick_Status = False
+            else:
+                self.Tick_Status = True
+        else:
+            self.status = False
+
+    def Draw(self):
+        # Drawing Box
+        pygame.draw.rect(screen, self.Colours[1 if self.Tick_Status else 0], self.box_rect)
+        pygame.draw.rect(screen, 'black', self.box_rect, 2)
+
+        # Drawing Header
+        header_surface = test_font.render(self.header, True, 'black')
+        screen.blit(header_surface, (self.x + 35, self.y))
 
 
 class UserInputGUI(object):
@@ -127,19 +152,26 @@ class UserInputGUI(object):
     DD_Days = [x+1 for x in range(31)]
     DD_MthDay = [31,28,31,30,31,30,31,31,30,31,30,31]
 
-
-
-
     def __init__(self):
         # Initialising Empty Input Boxes
         self.category = ['Title', 'Date', 'Hour', 'Min', 'Year', 'Month', 'Day']
+
+        #TextBoxes
         self.dict[self.category[0]] = TextBox(1, 20, self.BG_x + 50, self.BG_y + 50, self.category[0],'Enter the Title')
         self.dict[self.category[1]] = TextBox(1, 5, self.BG_x + 50, self.BG_y + 150, self.category[1],'Date')
+
+        #DropBoxes
         self.dict[self.category[2]] = DropBox(1, 2, self.BG_x + 250, self.BG_y + 150, self.category[2], 'Hr',self.DD_Hours, 24)
         self.dict[self.category[3]] = DropBox(1, 2, self.BG_x + 350, self.BG_y + 150, self.category[3],'Min', self.DD_Mins, 4)
+        #Date including Leap year
         self.dict[self.category[4]] = DropBox(1, 4, self.BG_x + 210, self.BG_y + 250, self.category[4], 'YYYY', self.DD_Year, 50)
         self.dict[self.category[5]] = DropBox(1, 2, self.BG_x + 130, self.BG_y + 250, self.category[5], 'MM', self.DD_Month, 12)
         self.dict[self.category[6]] = DropBox(1, 2, self.BG_x + 50, self.BG_y + 250, self.category[6], 'DD', self.DD_Days, 0)
+
+        #TickBoxes
+        self.dict['Recurring'] = TickBox(self.BG_x + 50,self.BG_y + 300,'Recurring')
+
+
     def Draw(self):
         Colours = [pygame.Color('lightskyblue3'), pygame.Color('grey15')]
 
@@ -158,6 +190,8 @@ class UserInputGUI(object):
                 item.Draw()
             elif item.ObjectType == 1:
                 item.DrawDDBox()
+            elif item.ObjectType == 2:
+                item.Draw()
 
     def UserClick(self, MousePos):
         if self.Exit_Rect.collidepoint(MousePos):
