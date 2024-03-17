@@ -1,11 +1,12 @@
 import pygame
 from sys import exit
 
-window_height = 600
-window_width = 1000
+window_height = 900
+window_width = 1600
 
 
-class textBox(object):
+class TextBox(object):
+    ObjectType = 0
     status = False
     Colours = [pygame.Color('lightskyblue3'), pygame.Color('grey15')]
 
@@ -16,31 +17,60 @@ class textBox(object):
         self.y = y
         self.text = ''
         self.header = header
+        self.box_rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
-    # def toggle(self):
-    #    self.status = False if self.status else True
-
-    def updateText(self, remove, char):
-        if remove:
-            self.text = self.text[:-1]
+    def checkStatus(self,MousePos):
+        # Check Collision
+        if self.box_rect.collidepoint(MousePos):
+            self.status = True
         else:
+            self.status = False
+
+    def updateText(self, Mode, char):
+        if Mode == 0:
+            self.text = self.text[:-1]
+        elif Mode == 1:
             self.text += char
 
     def Draw(self):
         # Drawing Box
-        box_rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(screen, self.Colours[0 if self.status else 1], box_rect, 2)
+        pygame.draw.rect(screen, 'white', self.box_rect)
+        pygame.draw.rect(screen, self.Colours[0 if self.status else 1], self.box_rect,2)
 
         # Drawing Header
-        header_surface = test_font.render(self.header, True, 'white')
-        screen.blit(header_surface, (box_rect.x, box_rect.y - 20))
+        header_surface = test_font.render(self.header, True, 'black')
+        screen.blit(header_surface, (self.box_rect.x, self.box_rect.y - 20))
 
         # Drawing Text
-        text_surface = test_font.render(self.text, True, 'white')
-        screen.blit(text_surface, (box_rect.x + 5, box_rect.y + 5))
+        text_surface = test_font.render(self.text, True, 'black')
+        screen.blit(text_surface, (self.box_rect.x + 5, self.box_rect.y + 5))
+
+class DropBox(TextBox):
+    ObjectType = 1
+    Cycle = 0
+    def __init__(self, height, width, x, y, header,Content):
+        super().__init__(height, width, x, y, header)
+        self.DDBox_Rect = pygame.Rect(self.x,self.y-self.height, self.width,self.height*3)
+        self.Content = Content
 
 
-class userInputGUI(object):
+
+
+    def DrawDDBox(self):
+
+
+        self.Draw()
+        if self.status:
+            pygame.draw.rect(screen, 'purple', self.DDBox_Rect)
+
+            for i in range(3):
+                text_surface = test_font.render(f"{self.Content[self.Cycle+(i-1)]:02d}", True, 'black')
+                screen.blit(text_surface, (self.DDBox_Rect.x + 5, self.box_rect.y + 5 + (i-1)*self.height))
+
+
+
+
+class UserInputGUI(object):
     # User GUI Window
     # GUI Size
     BG_Width = 760
@@ -54,12 +84,20 @@ class userInputGUI(object):
     Exit_Rect = pygame.Rect(BG_x + BG_Width - 50, BG_y + 10, 40, 40)
     dict = {}
 
+
+
+    DD_Mins = [00,15,30,45]
+    DD_Hours = [x for x in range (24)]
+    print(DD_Hours)
+    print(str(DD_Mins[0])+'a')
+
+
     def __init__(self):
         # Initialising Empty Input Boxes
         self.category = ['Title', 'Date', 'Time']
-        self.dict[self.category[0]] = textBox(1, 20, self.BG_x + 50, self.BG_x + 50, self.category[0])
-        self.dict[self.category[1]] = textBox(1, 5, self.BG_x + 50, self.BG_x + 150, self.category[1])
-        self.dict[self.category[2]] = textBox(1, 5, self.BG_x + 350, self.BG_x + 150, self.category[2])
+        self.dict[self.category[0]] = TextBox(1, 20, self.BG_x + 50, self.BG_y + 50, self.category[0])
+        self.dict[self.category[1]] = TextBox(1, 5, self.BG_x + 50, self.BG_y + 150, self.category[1])
+        self.dict[self.category[2]] = DropBox(1, 5, self.BG_x + 350, self.BG_y + 150, self.category[2],self.DD_Mins)
 
     def Draw(self):
         Colours = [pygame.Color('lightskyblue3'), pygame.Color('grey15')]
@@ -75,7 +113,10 @@ class userInputGUI(object):
         screen.blit(Exit_surface, (Exit_Rect.x + 5, Exit_Rect.y - 10))
 
         for item in self.dict.values():
-            item.Draw()
+            if item.ObjectType == 0:
+                item.Draw()
+            elif item.ObjectType == 1:
+                item.DrawDDBox()
 
     def UserClick(self, MousePos):
 
@@ -83,21 +124,17 @@ class userInputGUI(object):
             return 1
 
         for item in self.dict.values():
-            # Check Collision
-            box_rect = pygame.Rect(item.x, item.y, item.width, item.height)
-            if box_rect.collidepoint(MousePos):
-                item.status = True
-            else:
-                item.status = False
+            item.checkStatus(MousePos)
         return 0
 
     def EditText(self, Mode, Char):
         for item in self.dict.values():
-            if item.status:
-                if Mode == 0:
-                    item.text = item.text[:-1]
-                else:
-                    item.text += Char
+            if item.status and item.ObjectType == 0:
+                item.updateText(Mode,Char)
+                #if Mode == 0:
+                #    item.text = item.text[:-1]
+                #else:
+                #    item.text += Char
 
 
 pygame.init()
@@ -108,10 +145,16 @@ clock = pygame.time.Clock()
 test_font = pygame.font.Font(None, 32)
 
 input_rect = pygame.Rect(10, 10, 140, 32)
-Test = userInputGUI
+Test = UserInputGUI
 
 UserEventGUI = False  # TextBox
-DropBoxes = [0, 0, 0]
+
+
+"""Testing Area"""
+#TimeDBox = DropBox(1,12,100,100,"Time")
+
+
+"""Testing Area"""
 
 while True:
 
@@ -134,7 +177,7 @@ while True:
         #       continue
         if event.type == pygame.MOUSEBUTTONDOWN:
             if input_rect.collidepoint(event.pos) and not UserEventGUI:
-                Test = userInputGUI()
+                Test = UserInputGUI()
                 UserEventGUI = True
 
         if UserEventGUI:  # Only Checks When in User GUI
@@ -143,7 +186,7 @@ while True:
                     UserEventGUI = False
 
             if event.type == pygame.MOUSEMOTION:
-                if sum(DropBoxes) > 0:
+                #if sum(DropBoxes) > 0:
                     continue
 
         if event.type == pygame.KEYDOWN:
@@ -153,16 +196,18 @@ while True:
                 else:
                     Test.EditText(1, event.unicode)
 
-    screen.fill((0, 0, 0))
+    screen.fill('white')
 
     if not UserEventGUI:
-        pygame.draw.rect(screen, 'white', input_rect)
-        Add_Surface = test_font.render('Add Event', True, 'black')
-        screen.blit(Add_Surface, input_rect)
+        pygame.draw.rect(screen, 'blue', input_rect)
+        Add_Surface = test_font.render('Add Event', True, 'white')
+        screen.blit(Add_Surface, (input_rect.x+10,input_rect.y+5))
 
 
     else:
         Test.Draw()
+
+    #TimeDBox.DrawDDBox()
 
     pygame.display.update()
     clock.tick(60)
