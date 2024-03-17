@@ -1,5 +1,6 @@
 import pygame
 from sys import exit
+from math import *
 
 window_height = 900
 window_width = 1600
@@ -12,7 +13,7 @@ class TextBox(object):
 
     def __init__(self, height, width, x, y, header, DefText):
         self.height = height * 32
-        self.width = width * 32
+        self.width = width * 24
         self.x = x
         self.y = y
         self.text = ''
@@ -50,6 +51,9 @@ class TextBox(object):
         #text_surface = test_font.render(self.text, True, 'black')
         #screen.blit(text_surface, (self.box_rect.x + 5, self.box_rect.y + 5))
 
+        # Merged Commented Code
+
+        # Drawing Text/ Default Text
         if len(self.text) == 0:
             text_surface = test_font.render(self.DefText, True, 'grey')
         else:
@@ -60,6 +64,7 @@ class TextBox(object):
 class DropBox(TextBox):
     ObjectType = 1
     Cycle = 0
+    ScrollSen = 2
     def __init__(self, height, width, x, y, header,DefText,Content,MaxCycle):
         super().__init__(height, width, x, y, header,DefText)
         self.DDBox_Rect = pygame.Rect(self.x,self.y-self.height, self.width,self.height*3)
@@ -69,14 +74,37 @@ class DropBox(TextBox):
 
     def DrawDDBox(self):
         self.Draw()
-        if self.status:
+        if self.status and self.MaxCycle:
             pygame.draw.rect(screen, 'purple', self.DDBox_Rect)
             for i in range(3):
-                text_surface = test_font.render(f"{self.Content[(self.Cycle+(i-1))%self.MaxCycle]:02d}", True, 'black')
+                text_surface = test_font.render(f"{self.Content[(floor(self.Cycle/self.ScrollSen)+(i-1))%self.MaxCycle]:02d}", True, 'black')
                 screen.blit(text_surface, (self.DDBox_Rect.x + 5, self.box_rect.y + 5 + (i-1)*self.height))
 
             #Update the TextBox
-            self.text = f"{self.Content[self.Cycle]:02d}"
+            self.text = f"{self.Content[floor(self.Cycle/self.ScrollSen)]:02d}"
+
+
+
+        elif self.status and not self.MaxCycle:
+            small_font = pygame.font.Font(None, 16)
+            text_surface = small_font.render('Enter Month and Year first!', True, 'red')
+            screen.blit(text_surface, (self.DDBox_Rect.x + 5, self.box_rect.y + self.height+5))
+
+    def CheckDayMon(self):
+        if self.header == 'Date' or self.header == 'Month':
+            if len(self.Content) == 0:
+                return 1
+
+        return 0
+
+class TickBox(object):
+    ObjectType = 2
+    Tick_Status = False
+
+    def __init__(self):
+        return
+
+
 
 class UserInputGUI(object):
     # User GUI Window
@@ -94,18 +122,24 @@ class UserInputGUI(object):
 
     DD_Mins = [00,15,30,45]
     DD_Hours = [x for x in range(24)]
-    print(DD_Hours)
-    print(str(DD_Mins[0])+'a')
+    DD_Year = [x + 2020 for x in range(50)]
+    DD_Month = [x + 1 for x in range(12)]
+    DD_Days = [x+1 for x in range(31)]
+    DD_MthDay = [31,28,31,30,31,30,31,31,30,31,30,31]
+
+
 
 
     def __init__(self):
         # Initialising Empty Input Boxes
-        self.category = ['Title', 'Date', 'Hour', 'Min']
-        self.dict[self.category[0]] = TextBox(1, 20, self.BG_x + 50, self.BG_y + 50, self.category[0],'Title')
+        self.category = ['Title', 'Date', 'Hour', 'Min', 'Year', 'Month', 'Day']
+        self.dict[self.category[0]] = TextBox(1, 20, self.BG_x + 50, self.BG_y + 50, self.category[0],'Enter the Title')
         self.dict[self.category[1]] = TextBox(1, 5, self.BG_x + 50, self.BG_y + 150, self.category[1],'Date')
-        self.dict[self.category[2]] = DropBox(1, 2, self.BG_x + 250, self.BG_y + 150, self.category[2], 'Hour',self.DD_Hours, 24)
-        self.dict[self.category[3]] = DropBox(1, 2, self.BG_x + 350, self.BG_y + 150, self.category[3],'Min',self.DD_Mins, 4)
-
+        self.dict[self.category[2]] = DropBox(1, 2, self.BG_x + 250, self.BG_y + 150, self.category[2], 'Hr',self.DD_Hours, 24)
+        self.dict[self.category[3]] = DropBox(1, 2, self.BG_x + 350, self.BG_y + 150, self.category[3],'Min', self.DD_Mins, 4)
+        self.dict[self.category[4]] = DropBox(1, 4, self.BG_x + 210, self.BG_y + 250, self.category[4], 'YYYY', self.DD_Year, 50)
+        self.dict[self.category[5]] = DropBox(1, 2, self.BG_x + 130, self.BG_y + 250, self.category[5], 'MM', self.DD_Month, 12)
+        self.dict[self.category[6]] = DropBox(1, 2, self.BG_x + 50, self.BG_y + 250, self.category[6], 'DD', self.DD_Days, 0)
     def Draw(self):
         Colours = [pygame.Color('lightskyblue3'), pygame.Color('grey15')]
 
@@ -140,9 +174,36 @@ class UserInputGUI(object):
     def ScrollDD(self, Mode, MousePos):
         for item in self.dict.values():
             if item.status and item.ObjectType == 1:
-                item.Cycle += 1
-                if item.Cycle == item.MaxCycle:
+                if item.CheckDayMon():
+                    return
+                if Mode == 4:   # Scroll Up
+                    item.Cycle -= 1
+                else:           # Scroll Down
+                    item.Cycle += 1
+                if item.Cycle == item.ScrollSen*item.MaxCycle:  # Cycle from last to first
                     item.Cycle = 0
+                if item.Cycle == -1:                            # Cycle from first to last
+                    item.Cycle = item.ScrollSen*item.MaxCycle-1
+        self.Update()
+    def Update(self):
+        Year = self.dict.get('Year')
+        Month = self.dict.get('Month')
+        Day = self.dict.get('Day')
+        if Year.status or Month.status:
+            if Year.text != '' and Month.text != '':
+                if(int(Year.text)-2024)&4 == 0:
+                    Leap = 1
+                else:
+                    Leap = 0
+                MthDay = int(Month.text) - 1
+                MaxDays = self.DD_MthDay[MthDay] + Leap
+                #Day.Content = [x+1 for x in range(MaxDays)]
+                Day.MaxCycle = MaxDays
+                Day.Cycle = 0
+            else:
+                Day.MaxCycle = 0
+                Day.Cycle = 0
+
 
     def DeactiveAll(self):
         for item in self.dict.values():
@@ -203,6 +264,7 @@ while True:
                         UserEventGUI = False
 
                 if event.button in [4,5]:
+                    print(event.button)
                     Test.ScrollDD(event.button, event.pos)
 
             #if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -230,6 +292,7 @@ while True:
 
 
     else:
+        Test.Update()
         Test.Draw()
 
     #TimeDBox.DrawDDBox()
