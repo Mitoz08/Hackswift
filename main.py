@@ -206,24 +206,6 @@ class UserInputGUI(object):
 
 
     def __init__(self):
-        # Initialising Empty Input Boxes
-        #self.category = ['Title', 'Date', 'Hour', 'Min', 'Year', 'Month', 'Day']
-
-        #TextBoxes
-        #self.dict[self.category[0]] = TextBox(1, 20, self.BG_x + 50, self.BG_y + 50, self.category[0],'Enter the Title')
-        #self.dict[self.category[1]] = TextBox(1, 5, self.BG_x + 50, self.BG_y + 150, self.category[1],'Date')
-
-        #DropBoxes
-        #self.dict[self.category[2]] = DropBox(1, 2, self.BG_x + 250, self.BG_y + 150, self.category[2], 'Hr',self.DD_Hours, 24)
-        #self.dict[self.category[3]] = DropBox(1, 2, self.BG_x + 350, self.BG_y + 150, self.category[3],'Min', self.DD_Mins, 4)
-        #Date including Leap year
-        #self.dict[self.category[4]] = DropBox(1, 4, self.BG_x + 210, self.BG_y + 250, self.category[4], 'YYYY', self.DD_Year, 50)
-        #self.dict[self.category[5]] = DropBox(1, 2, self.BG_x + 130, self.BG_y + 250, self.category[5], 'MM', self.DD_Month, 12)
-        #self.dict[self.category[6]] = DropBox(1, 2, self.BG_x + 50, self.BG_y + 250, self.category[6], 'DD', self.DD_Days, 0)
-
-        #TickBoxes
-        #self.dict['Recurring'] = TickBox(self.BG_x + 50,self.BG_y + 300,'Recurring')
-
         """ Start of Merging"""
         # Default parameters
         # Strings: name,location,description
@@ -421,26 +403,26 @@ class UserInputGUI(object):
                 if item.status and item.ObjectType == 0:
                     item.updateText(Mode,Char)
 
-    def ScrollDD(self, Mode, MousePos):
+    def ScrollDD(self, UpDown, MousePos):
         for item in self.DefDict.values():
-            self.ScrollFunc(item)
+            self.ScrollFunc(item,UpDown)
 
         TempDict = self.DymDict if self.Mode else self.FixDict
         for item in TempDict.values():
-            self.ScrollFunc(item)
+            self.ScrollFunc(item,UpDown)
         if not self.Mode and self.FixDict['Recurrent'].Tick_Status:
             for item in self.RecurDict.values():
-                self.ScrollFunc(item)
+                self.ScrollFunc(item,UpDown)
 
         self.UpdateDay()
 
-    def ScrollFunc(self,item):
+    def ScrollFunc(self,item,UpDown):
         if item.status and item.ObjectType == 1:
             if item.CheckDayMon():
                 return
-            if self.Mode == 4:  # Scroll Up
+            if UpDown == 4:  # Scroll Up
                 item.Cycle -= 1
-            else:  # Scroll Down
+            else:               # Scroll Down
                 item.Cycle += 1
             if item.Cycle == item.ScrollSen * item.MaxCycle:  # Cycle from last to first
                 item.Cycle = 0
@@ -455,13 +437,12 @@ class UserInputGUI(object):
             return
         if Year.status or Month.status:
             if Year.text != '' and Month.text != '':
-                if(int(Year.text)-2024)&4 == 0:
+                if(int(Year.text)-2024)%4 == 0:
                     Leap = 1
                 else:
                     Leap = 0
                 MthDay = int(Month.text) - 1
                 MaxDays = self.DD_MthDay[MthDay] + Leap
-                #Day.Content = [x+1 for x in range(MaxDays)]
                 Day.MaxCycle = MaxDays
                 Day.Cycle = 0
                 Day.text = '01'
@@ -572,18 +553,7 @@ while True:
             pygame.quit()
             exit()
 
-        # if event.type == pygame.MOUSEBUTTONDOWN:
-        #    if input_rect.collidepoint(event.pos) and not UserEventGUI:
-        #        Test = userInputGUI()
-        #        UserEventGUI = True
-        #
-        #    if UserEventGUI:
-        #        if Test.UserClick(event.pos):
-        #            UserEventGUI = False
 
-        # if event.type == pygame.MOUSEMOTION:
-        #    if sum(DropBoxes) > 0:
-        #       continue
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if input_rect.collidepoint(event.pos) and not UserEventGUI:
                 Test = UserInputGUI()
@@ -606,17 +576,8 @@ while True:
                         UserEventGUI = False
 
                 if event.button in [4,5]:
-                    #print(event.button)
+                    print(event.button)
                     Test.ScrollDD(event.button, event.pos)
-
-            #if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            #    if Test.UserClick(event.pos):
-            #        UserEventGUI = False
-
-            #if event.type == pygame.MOUSEMOTION and (event.buttons in [4,5]):
-            #    Test.ScrollDD(event.button,event.pos)
-
-
 
         if event.type == pygame.KEYDOWN:
             if UserEventGUI:
@@ -636,8 +597,6 @@ while True:
     else:
         Test.Update()
         Test.Draw()
-
-    #TimeDBox.DrawDDBox()
 
     pygame.display.update()
     clock.tick(60)
